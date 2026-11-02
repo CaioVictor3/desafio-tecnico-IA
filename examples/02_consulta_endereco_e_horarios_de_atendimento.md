@@ -4,7 +4,7 @@ Execução real do modo DEMO determinístico, sem LLM/API. Ferramentas consultam
 
 **Cliente:** Qual o endereço da loja?
 
-**Mel:** A loja fica na Rua 14 de Maio, 3200 — Centro, Campo Grande - MS, 79202-333. Fonte: manual, seção 1.2, página 2.
+**Mel:** A loja fica na Rua 14 de Maio, 3200 — Centro, Campo Grande - MS, 79202-333.
 
 Ferramentas: search_policies.
 
@@ -16,6 +16,6 @@ Ferramentas: search_policies.
 - Sábado 09:00 às 13:00
 - Domingo e Feriados Fechado
 
-Datas especiais podem ter alterações. Fonte: manual, seção 2, página 2.
+Datas especiais podem ter alterações.
 
 Ferramentas: search_policies.

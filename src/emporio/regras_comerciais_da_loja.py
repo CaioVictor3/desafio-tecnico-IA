@@ -83,7 +83,7 @@ class Rules:
             "eligible": True,
             "installment_amounts": [brl(a) for a in amounts],
             "installment_amounts_cents": amounts,
-            "message": "Condição simulada no snapshot local, sujeita à confirmação da loja.",
+            "message": "Condição sujeita à confirmação da loja.",
         }
 
     def assess_return(
@@ -102,22 +102,27 @@ class Rules:
             "today": today.isoformat(),
             "policy_sources": self.policies.source([section, "4.4", "8.1"]),
             "automatic_approval": False,
-            "message": "Orientação conforme o manual fornecido; a equipe confirma o caso. "
+            "message": "A equipe precisa confirmar as condições do seu caso. "
             "Nenhuma devolução ou reembolso foi registrado.",
         }
         if reason == "regret" and online is not True:
             return {
                 **result,
                 "status": "needs_information" if online is None else "needs_review",
-                "question": "A compra foi feita online? A seção 4.1 trata de compras online.",
+                "question": (
+                    "A compra foi feita online?"
+                    if online is None
+                    else "Para compras presenciais, a equipe precisa avaliar "
+                    "sua solicitação de devolução."
+                ),
             }
         if reason == "preference":
             return {
                 **result,
                 "status": "needs_review",
-                "question": "O manual prevê até 7 dias, "
-                "mas não explicita o marco inicial nesta seção. A equipe precisa confirmar "
-                "a data, o estado do produto e o estoque do modelo desejado.",
+                "question": "A troca por preferência pode ser solicitada em até 7 dias. "
+                "A equipe precisa confirmar a data de início do prazo, o estado do produto "
+                "e o estoque do modelo desejado.",
             }
         anchor = purchase_date if reason == "defect" else received_date
         if not anchor:
@@ -152,6 +157,6 @@ class Rules:
                 if reason == "regret"
                 else "Confirmar defeito de fabricação com a equipe. "
                 "Após 30 dias, consultar garantia "
-                "do fabricante; a seção 8.1 também prevê 90 dias desde o recebimento."
+                "do fabricante; a garantia legal também prevê 90 dias desde o recebimento."
             ),
         }

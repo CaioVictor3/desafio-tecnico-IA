@@ -199,7 +199,10 @@ calculados em Python. O hash em `versao_validada_das_politicas.json` vincula ess
 revisado: se o PDF mudar, param até revisão das regras e atualização deliberada do
 hash. Não basta regenerar o hash sem conferir as políticas.
 
-**Prompt.** Persona informal e profissional, uso obrigatório de fontes, consultas
+**Prompt.** Persona informal e profissional, consulta obrigatória às fontes internas,
+sem citar a origem na resposta ao cliente. Nomes de arquivos/tabelas, CSV, PDF,
+seções e páginas não fazem parte do texto de atendimento. Os metadados de origem
+continuam disponíveis internamente nas ferramentas. Há consultas
 distintas para dados/políticas, perguntas de esclarecimento, proteção de dados,
 limites de escopo e proibição de fingir ações externas. O primeiro passo exige uma
 ferramenta. Há até seis rodadas por padrão e doze chamadas no total por mensagem,

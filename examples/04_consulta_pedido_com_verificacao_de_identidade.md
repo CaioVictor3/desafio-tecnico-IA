@@ -10,7 +10,7 @@ Ferramentas: search_policies.
 
 **Cliente:** anacarol.ferreira@coldmail.com
 
-**Mel:** Seu pedido #8 está enviado. Total: R$ 349,90. Código informado na base: BRJL5544332BR. Previsão registrada: 2026-02-28. Consultei o snapshot local de orders.csv; não fiz consulta à transportadora. Previsão não comprova data de recebimento.
+**Mel:** Seu pedido #8 está enviado. Total: R$ 349,90. Código de rastreamento: BRJL5544332BR. Previsão registrada: 2026-02-28. A previsão de entrega não confirma a data real de recebimento.
 
 Ferramentas: get_order.
 

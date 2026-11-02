@@ -106,35 +106,32 @@ class DemoProvider:
                     f"Seu pedido #{result['order_id']} está {status}. Total: {result['total']}."
                 )
                 if result["tracking_code"]:
-                    answer += f" Código informado na base: {result['tracking_code']}."
+                    answer += f" Código de rastreamento: {result['tracking_code']}."
                 if result["estimated_delivery"]:
                     answer += f" Previsão registrada: {result['estimated_delivery']}."
                 if result["notes"]:
                     answer += f" Observação: {result['notes']}."
                 return Turn(
                     [],
-                    answer + " Consultei o snapshot local de orders.csv; não fiz "
-                    "consulta à transportadora. Previsão não comprova data de recebimento.",
+                    answer + " A previsão de entrega não confirma a data real de recebimento.",
                 )
             if route == "return":
                 result = outputs[-1]
                 if "question" in result:
                     return Turn([], result["question"])
                 answer = (
-                    f"Pelo manual, o prazo desta situação termina em {result['deadline']} "
+                    f"O prazo para esta solicitação termina em {result['deadline']} "
                     f"({result['elapsed_days']} dias decorridos). "
                 )
                 answer += (
                     "Você está dentro da janela de solicitação. "
                     if result["within_window"]
-                    else "A janela descrita no manual passou; a equipe deve avaliar seu caso. "
+                    else "Esse prazo já passou; a equipe precisa avaliar seu caso. "
                 )
                 return Turn(
                     [],
                     answer + result["next_step"] + " Isso é uma orientação: não "
-                    "registrei nem aprovei devolução. Fonte: manual, seção "
-                    + result["policy_sources"][0]["section"]
-                    + ".",
+                    "registrei nem aprovei devolução.",
                 )
             if route == "policy":
                 matches = outputs[-1].get("matches", [])
@@ -150,9 +147,7 @@ class DemoProvider:
                             None,
                         )
                         if address:
-                            return Turn(
-                                [], f"A loja fica na {address}. Fonte: manual, seção 1.2, página 2."
-                            )
+                            return Turn([], f"A loja fica na {address}.")
                 if re.search(r"horario|funciona", current):
                     section = next((s for s in matches if s["section"] == "2"), None)
                     if section:
@@ -165,18 +160,19 @@ class DemoProvider:
                             [],
                             "Horário regular da loja e WhatsApp:\n\n- "
                             + "\n- ".join(hours)
-                            + "\n\nDatas especiais podem ter alterações. "
-                            "Fonte: manual, seção 2, página 2.",
+                            + "\n\nDatas especiais podem ter alterações.",
                         )
+                if re.search(r"telefone|whatsapp|email|e-mail", current):
+                    return Turn(
+                        [], "Preciso confirmar o contato correto com a equipe antes de te informar."
+                    )
                 matches = matches[:1]
                 text = "\n\n".join(
-                    f"{s['title']} (manual, seção {s['section']}, "
-                    f"p. {','.join(map(str, s['pages']))}):\n{s['text']}"
+                    "\n".join(s["text"].splitlines()[1:]).strip()
                     for s in matches
+                    if s["section"] not in {"capa", "1.1", "7.1", "7.2", "10"}
                 )
-                if re.search(r"telefone|whatsapp|email|e-mail", current):
-                    text += "\nAtenção: " + outputs[-1]["ambiguities"][0]
-                return Turn([], text or "Não encontrei essa informação no manual.")
+                return Turn([], text or "Preciso confirmar essa informação com a equipe.")
             return Turn(
                 [],
                 "Sou a Mel, assistente virtual da Empório da Música. Posso ajudar "
@@ -247,7 +243,7 @@ class DemoProvider:
         if len(outputs) > 1:
             quote = outputs[-1]
             if quote.get("eligible") is not True:
-                return quote["message"] + " Fonte: manual, seção 3.1."
+                return quote["message"]
             product = quote["product"]
             payment = {
                 "pix": "PIX",
@@ -264,14 +260,10 @@ class DemoProvider:
                 )
             if quote["installments"] > 1:
                 result += " Parcelas sem juros: " + ", ".join(quote["installment_amounts"]) + "."
-            return (
-                result + " Frete não incluído. Fontes: products.csv, promotions.csv e manual 3/6.2."
-            )
+            return result + " Frete não incluído."
         products = outputs[0].get("products", [])
         if not products:
-            return (
-                "Não encontrei produtos com esses filtros no snapshot local. Quer ampliar a busca?"
-            )
+            return "Não encontrei produtos com esses filtros. Quer ampliar a busca?"
         lines = []
         for p in products:
             price = (
@@ -290,8 +282,4 @@ class DemoProvider:
             lines.append(f"- {p['name']}: {price}; {availability}.")
         if outputs[0]["has_more"]:
             lines.append("Há mais opções com esses filtros. Posso refinar a busca.")
-        return (
-            "Consultei o catálogo local:\n"
-            + "\n".join(lines)
-            + ("\nFonte: products.csv + categories.csv + promotions.csv.")
-        )
+        return "Encontrei estas opções para você:\n\n" + "\n".join(lines)

@@ -53,3 +53,12 @@ Após a correção, os 19 testes locais de integração com o provedor/terminal 
 interface Streamlit passaram. Ruff e a verificação de formatação também passaram.
 Os cenários adicionais usam transporte HTTP simulado, sem novas chamadas reais.
 
+## Atendimento sem citação de fontes internas
+
+As respostas ao cliente não incluem nomes de arquivos/tabelas, CSV, PDF, páginas
+ou seções do manual. As instruções do LLM e os textos do modo demonstração foram
+ajustados. Os metadados de origem e as consultas continuam disponíveis internamente.
+Os cinco exemplos foram regenerados. Os 42 testes locais do agente, regras/políticas
+e interface passaram, incluindo oito cenários que verificam respostas sem citações
+e a preservação das consultas internas e do cálculo de preço promocional.
+

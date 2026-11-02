@@ -48,10 +48,10 @@ class Agent:
                 if not turn.text.strip():
                     return Answer("Não consegui montar uma resposta. Pode reformular?", trace)
                 if not trace:
-                    return Answer("Não consegui consultar uma fonte da loja. Tente novamente.")
+                    return Answer("Não consegui confirmar essa informação agora. Tente novamente.")
                 if not any(event["ok"] for event in trace):
                     return Answer(
-                        "Não consegui validar a consulta nas fontes da loja. "
+                        "Não consegui confirmar sua solicitação agora. "
                         "Confira os dados informados ou fale com a equipe.",
                         trace,
                     )

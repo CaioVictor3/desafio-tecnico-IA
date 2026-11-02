@@ -84,7 +84,7 @@ def main() -> None:
             except (DataError, ValueError, OSError):
                 texto_da_resposta = (
                     "Não consegui consultar as informações agora. "
-                    "Confira as fontes e a configuração local e tente novamente."
+                    "Tente novamente em alguns instantes ou fale com a equipe da loja."
                 )
         exibir_mensagem(texto_da_resposta)
     st.session_state["mensagens_exibidas"] = (

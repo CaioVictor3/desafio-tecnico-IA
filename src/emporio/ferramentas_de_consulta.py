@@ -165,7 +165,7 @@ class Toolbox:
         except (DataError, OSError, ValueError):
             return {
                 "error": "source_unavailable",
-                "message": "Não consegui validar a fonte. "
+                "message": "Não consegui confirmar essa informação agora. "
                 "Não confirme valores ou prazos; oriente o cliente a falar com a equipe.",
             }
         return {"error": "unknown_tool"}
