@@ -27,4 +27,3 @@ def cents(value: str | Decimal) -> int:
 def brl(value_cents: int) -> str:
     integer, fraction = divmod(value_cents, 100)
     return f"R$ {integer:,}".replace(",", ".") + f",{fraction:02d}"
-

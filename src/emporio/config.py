@@ -36,4 +36,3 @@ class Settings:
             api_key=os.getenv("OPENAI_API_KEY", ""),
             max_rounds=rounds,
         )
-

@@ -60,7 +60,9 @@ class Catalog:
 
     def refresh(self) -> None:
         sources = self._sources()
-        signature = tuple((str(p), p.stat().st_mtime_ns, p.stat().st_size) for p in sources.values())
+        signature = tuple(
+            (str(p), p.stat().st_mtime_ns, p.stat().st_size) for p in sources.values()
+        )
         if signature == self._signature:
             return
         new_db = sqlite3.connect(":memory:")
@@ -92,9 +94,17 @@ class Catalog:
                 if not isinstance(specs, dict):
                     raise ValueError("specs deve ser um objeto JSON.")
                 date.fromisoformat(r["created_at"])
-                values = (int(r["product_id"]), cents(r["price_brl"]), r["name"],
-                          int(r["category_id"]), r["description"], int(r["stock_quantity"]),
-                          r["status"], json.dumps(specs, ensure_ascii=False), r["created_at"])
+                values = (
+                    int(r["product_id"]),
+                    cents(r["price_brl"]),
+                    r["name"],
+                    int(r["category_id"]),
+                    r["description"],
+                    int(r["stock_quantity"]),
+                    r["status"],
+                    json.dumps(specs, ensure_ascii=False),
+                    r["created_at"],
+                )
             case "customers":
                 values = (int(r["customer_id"]), r["email"].strip().casefold())
             case "orders":
@@ -103,14 +113,27 @@ class Catalog:
                     date.fromisoformat(r["estimated_delivery"])
                 if r["status"] not in {"pending", "confirmed", "shipped", "delivered", "cancelled"}:
                     raise ValueError("Status de pedido inválido.")
-                values = (int(r["order_id"]), int(r["customer_id"]), r["order_date"], r["status"],
-                          cents(r["total_brl"]), r["payment_method"], r["tracking_code"] or None,
-                          r["estimated_delivery"] or None, r["notes"] or None)
+                values = (
+                    int(r["order_id"]),
+                    int(r["customer_id"]),
+                    r["order_date"],
+                    r["status"],
+                    cents(r["total_brl"]),
+                    r["payment_method"],
+                    r["tracking_code"] or None,
+                    r["estimated_delivery"] or None,
+                    r["notes"] or None,
+                )
             case "order_items":
                 values = (int(r["order_id"]), int(r["quantity"]), int(r["product_id"]))
             case "promotions":
-                values = (int(r["promotion_id"]), int(r["product_id"]),
-                          int(r["discount_percent"]), r["description"], int(r["is_active"]))
+                values = (
+                    int(r["promotion_id"]),
+                    int(r["product_id"]),
+                    int(r["discount_percent"]),
+                    r["description"],
+                    int(r["is_active"]),
+                )
             case _:
                 raise ValueError("Tabela não permitida.")
         placeholders = ",".join("?" for _ in values)
@@ -123,27 +146,40 @@ class Catalog:
         return self._db
 
     def counts(self) -> dict[str, int]:
-        return {name: self.db.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0]
-                for name in TABLES}
+        return {
+            name: self.db.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0] for name in TABLES
+        }
 
     def _product(self, r: sqlite3.Row) -> dict:
         promo = self.db.execute(
             "SELECT discount,description FROM promotions WHERE product_id=? AND active=1 "
-            "ORDER BY discount DESC,id LIMIT 1", (r["id"],)
+            "ORDER BY discount DESC,id LIMIT 1",
+            (r["id"],),
         ).fetchone()
         # Promoções só são oferecidas para produtos comercializáveis em estoque.
         available = r["status"] == "active" and r["stock"] > 0
         discount = promo["discount"] if promo and available else 0
         from decimal import ROUND_HALF_UP, Decimal
 
-        current = int((Decimal(r["price"]) * (100 - discount) / 100).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP))
+        current = int(
+            (Decimal(r["price"]) * (100 - discount) / 100).quantize(
+                Decimal("1"), rounding=ROUND_HALF_UP
+            )
+        )
         return {
-            "product_id": r["id"], "name": r["name"], "category": r["category"],
-            "description": r["description"], "specs": json.loads(r["specs"]),
-            "status": r["status"], "stock_quantity": r["stock"], "available": available,
-            "list_price_cents": r["price"], "list_price": brl(r["price"]),
-            "price_cents": current, "price": brl(current), "discount_percent": discount,
+            "product_id": r["id"],
+            "name": r["name"],
+            "category": r["category"],
+            "description": r["description"],
+            "specs": json.loads(r["specs"]),
+            "status": r["status"],
+            "stock_quantity": r["stock"],
+            "available": available,
+            "list_price_cents": r["price"],
+            "list_price": brl(r["price"]),
+            "price_cents": current,
+            "price": brl(current),
+            "discount_percent": discount,
             "promotion": promo["description"] if discount else None,
             "source": "products.csv + categories.csv + promotions.csv (snapshot local atualizado)",
         }
@@ -151,19 +187,27 @@ class Catalog:
     def product(self, product_id: int) -> dict | None:
         r = self.db.execute(
             "SELECT p.*,c.name AS category FROM products p JOIN categories c ON c.id=p.category_id "
-            "WHERE p.id=?", (product_id,)
+            "WHERE p.id=?",
+            (product_id,),
         ).fetchone()
         return self._product(r) if r else None
 
-    def search(self, query: str = "", category: str | None = None,
-               max_price_cents: int | None = None, only_available: bool = True,
-               limit: int = 5) -> dict:
+    def search(
+        self,
+        query: str = "",
+        category: str | None = None,
+        max_price_cents: int | None = None,
+        only_available: bool = True,
+        limit: int = 5,
+    ) -> dict:
         words = tokens(query)
         clauses, args = [], []
         for word in words:
             # instr evita que % e _ enviados pelo cliente virem curingas SQL.
-            clauses.append("instr(normalize(p.name || ' ' || c.name || ' ' || p.description "
-                           "|| ' ' || p.specs),?)>0")
+            clauses.append(
+                "instr(normalize(p.name || ' ' || c.name || ' ' || p.description "
+                "|| ' ' || p.specs),?)>0"
+            )
             args.append(word)
         if category:
             clauses.append("instr(normalize(c.name),?)>0")
@@ -173,37 +217,50 @@ class Catalog:
         where = " AND ".join(clauses) or "1=1"
         rows = self.db.execute(
             "SELECT p.*,c.name AS category FROM products p JOIN categories c ON c.id=p.category_id "
-            f"WHERE {where}", args
+            f"WHERE {where}",
+            args,
         ).fetchall()
         products = [self._product(r) for r in rows]
         if max_price_cents is not None:
             products = [p for p in products if p["price_cents"] <= max_price_cents]
         products.sort(key=lambda p: (p["price_cents"], p["product_id"]))
-        return {"products": products[:limit], "total_found": len(products),
-                "has_more": len(products) > limit}
+        return {
+            "products": products[:limit],
+            "total_found": len(products),
+            "has_more": len(products) > limit,
+        }
 
     def order(self, order_id: int, email: str) -> dict:
         # Mesma resposta para ID inexistente e e-mail divergente evita enumeração simples.
         row = self.db.execute(
             "SELECT o.* FROM orders o JOIN customers c ON c.id=o.customer_id "
-            "WHERE o.id=? AND c.email=?", (order_id, email.strip().casefold())
+            "WHERE o.id=? AND c.email=?",
+            (order_id, email.strip().casefold()),
         ).fetchone()
         if not row:
-            return {"error": "order_not_verified",
-                    "message": "Não consegui validar esse pedido com o e-mail informado."}
+            return {
+                "error": "order_not_verified",
+                "message": "Não consegui validar esse pedido com o e-mail informado.",
+            }
         items = self.db.execute(
             "SELECT i.quantity,p.name FROM order_items i JOIN products p ON p.id=i.product_id "
-            "WHERE i.order_id=? ORDER BY p.id", (order_id,)
+            "WHERE i.order_id=? ORDER BY p.id",
+            (order_id,),
         ).fetchall()
-        return {"order_id": row["id"], "order_date": row["order_date"], "status": row["status"],
-                "total": brl(row["total"]), "payment_method": row["payment_method"],
-                "tracking_code": row["tracking_code"],
-                "estimated_delivery": row["estimated_delivery"], "notes": row["notes"],
-                "items": [dict(r) for r in items],
-                "source": "orders.csv + order_items.csv (snapshot local; sem rastreio externo)",
-                "warning": "Previsão não confirma data de entrega; não existe delivered_at na base."}
+        return {
+            "order_id": row["id"],
+            "order_date": row["order_date"],
+            "status": row["status"],
+            "total": brl(row["total"]),
+            "payment_method": row["payment_method"],
+            "tracking_code": row["tracking_code"],
+            "estimated_delivery": row["estimated_delivery"],
+            "notes": row["notes"],
+            "items": [dict(r) for r in items],
+            "source": "orders.csv + order_items.csv (snapshot local; sem rastreio externo)",
+            "warning": "Previsão não confirma data de entrega; não existe delivered_at na base.",
+        }
 
     def close(self) -> None:
         if self._db:
             self._db.close()
-

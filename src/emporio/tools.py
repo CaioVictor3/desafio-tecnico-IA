@@ -64,16 +64,31 @@ class AssessReturn(Arguments):
 
 
 DEFINITIONS = {
-    "search_products": (SearchProducts, "Consultar catálogo, estoque e promoções ATUAIS no "
-                        "snapshot local. Inclua indisponíveis para perguntas sobre modelo específico."),
-    "get_quote": (GetQuote, "Calcular preço PIX ou parcelamento SEM acumular promoções. "
-                  "Obtenha product_id com search_products antes. Não faz compra."),
-    "get_order": (GetOrder, "Consultar UM pedido com número e e-mail informados pelo próprio "
-                  "cliente. Nunca adivinhe o e-mail. Não há acesso ao cadastro/lista de clientes."),
-    "search_policies": (SearchPolicies, "Consultar evidências no PDF: horários, endereço, "
-                        "pagamento, frete, trocas, garantia, escopo, atendimento e privacidade."),
-    "assess_return": (AssessReturn, "Aplicar prazos do manual à data real de compra/recebimento. "
-                      "Não aprova nem registra devolução. Use null para dados desconhecidos."),
+    "search_products": (
+        SearchProducts,
+        "Consultar catálogo, estoque e promoções ATUAIS no "
+        "snapshot local. Inclua indisponíveis para perguntas sobre modelo específico.",
+    ),
+    "get_quote": (
+        GetQuote,
+        "Calcular preço PIX ou parcelamento SEM acumular promoções. "
+        "Obtenha product_id com search_products antes. Não faz compra.",
+    ),
+    "get_order": (
+        GetOrder,
+        "Consultar UM pedido com número e e-mail informados pelo próprio "
+        "cliente. Nunca adivinhe o e-mail. Não há acesso ao cadastro/lista de clientes.",
+    ),
+    "search_policies": (
+        SearchPolicies,
+        "Consultar evidências no PDF: horários, endereço, "
+        "pagamento, frete, trocas, garantia, escopo, atendimento e privacidade.",
+    ),
+    "assess_return": (
+        AssessReturn,
+        "Aplicar prazos do manual à data real de compra/recebimento. "
+        "Não aprova nem registra devolução. Use null para dados desconhecidos.",
+    ),
 }
 
 
@@ -81,8 +96,15 @@ def schemas() -> list[dict]:
     result = []
     for name, (model, description) in DEFINITIONS.items():
         schema = model.model_json_schema()
-        result.append({"type": "function", "name": name, "description": description,
-                       "parameters": schema, "strict": True})
+        result.append(
+            {
+                "type": "function",
+                "name": name,
+                "description": description,
+                "parameters": schema,
+                "strict": True,
+            }
+        )
     return result
 
 
@@ -93,8 +115,9 @@ class Toolbox:
         self.rules = Rules(catalog, policies)
         self.today = today
 
-    def execute(self, name: str, raw_arguments: str,
-                user_messages: list[str] | None = None) -> dict:
+    def execute(
+        self, name: str, raw_arguments: str, user_messages: list[str] | None = None
+    ) -> dict:
         if name not in DEFINITIONS:
             return {"error": "unknown_tool", "message": "Ferramenta não permitida."}
         try:
@@ -102,20 +125,31 @@ class Toolbox:
             match arguments:
                 case SearchProducts():
                     return self.catalog.search(
-                        query=arguments.query, category=arguments.category,
-                        max_price_cents=(cents(str(arguments.max_price_brl))
-                                         if arguments.max_price_brl is not None else None),
-                        only_available=arguments.only_available, limit=arguments.limit,
+                        query=arguments.query,
+                        category=arguments.category,
+                        max_price_cents=(
+                            cents(str(arguments.max_price_brl))
+                            if arguments.max_price_brl is not None
+                            else None
+                        ),
+                        only_available=arguments.only_available,
+                        limit=arguments.limit,
                     )
                 case GetQuote():
                     return self.rules.quote(**arguments.model_dump())
                 case GetOrder():
                     # Identidade deve vir do cliente, nunca dos documentos nem da imaginação do LLM.
-                    provided = {email.casefold() for text in (user_messages or [])
-                                for email in re.findall(r"[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}", text)}
+                    provided = {
+                        email.casefold()
+                        for text in (user_messages or [])
+                        for email in re.findall(r"[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}", text)
+                    }
                     if arguments.customer_email not in provided:
-                        return {"error": "identity_required", "message": "Peça o e-mail de compra "
-                                "ao cliente antes de consultar o pedido."}
+                        return {
+                            "error": "identity_required",
+                            "message": "Peça o e-mail de compra "
+                            "ao cliente antes de consultar o pedido.",
+                        }
                     return self.catalog.order(arguments.order_id, arguments.customer_email)
                 case SearchPolicies():
                     return self.policies.search(**arguments.model_dump())
@@ -123,14 +157,19 @@ class Toolbox:
                     return self.rules.assess_return(**arguments.model_dump(), today=self.today)
         except ValidationError:
             # Não retornar os argumentos pessoais ou detalhes internos no erro de validação.
-            return {"error": "invalid_arguments", "message": "Argumentos inválidos. Confira o "
-                    "schema, as datas e os campos obrigatórios da ferramenta."}
+            return {
+                "error": "invalid_arguments",
+                "message": "Argumentos inválidos. Confira o "
+                "schema, as datas e os campos obrigatórios da ferramenta.",
+            }
         except (DataError, OSError, ValueError):
-            return {"error": "source_unavailable", "message": "Não consegui validar a fonte. "
-                    "Não confirme valores ou prazos; oriente o cliente a falar com a equipe."}
+            return {
+                "error": "source_unavailable",
+                "message": "Não consegui validar a fonte. "
+                "Não confirme valores ou prazos; oriente o cliente a falar com a equipe.",
+            }
         return {"error": "unknown_tool"}
 
     def run(self, name: str, user_messages: list[str] | None = None, **kwargs) -> dict:
         """Entrada conveniente para a demonstração e os testes; mesma validação do LLM."""
         return self.execute(name, json.dumps(kwargs, ensure_ascii=False), user_messages)
-

@@ -11,4 +11,7 @@ dist/
 build/
 .state/
 .DS_Store
+tests/.pytest_cache/
+*.log
+*./tests
 
