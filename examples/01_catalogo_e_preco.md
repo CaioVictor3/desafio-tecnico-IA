@@ -17,6 +17,6 @@ Ferramentas: search_products.
 
 **Cliente:** Quanto custa o Takamine GD20 no PIX?
 
-**Mel:** Takamine GD20 Dreadnought Natural: R$ 2.089,05 no pix. Frete não incluído. Fontes: products.csv, promotions.csv e manual 3/6.2.
+**Mel:** Takamine GD20 Dreadnought Natural: R$ 2.089,05 no PIX. Frete não incluído. Fontes: products.csv, promotions.csv e manual 3/6.2.
 
 Ferramentas: search_products, get_quote.

@@ -4,7 +4,7 @@ Execução real do modo DEMO determinístico, sem LLM/API. Ferramentas consultam
 
 **Cliente:** Quanto custa o Ohana CK-20 no PIX?
 
-**Mel:** Ohana CK-20 Concert Natural: R$ 439,20 no pix. De R$ 549,00 por R$ 439,20 (20% de desconto). PIX não acumula desconto sobre a promoção. Frete não incluído. Fontes: products.csv, promotions.csv e manual 3/6.2.
+**Mel:** Ohana CK-20 Concert Natural: R$ 439,20 no PIX. De R$ 549,00 por R$ 439,20 (20% de desconto). PIX não acumula desconto sobre a promoção. Frete não incluído. Fontes: products.csv, promotions.csv e manual 3/6.2.
 
 Ferramentas: search_products, get_quote.
 

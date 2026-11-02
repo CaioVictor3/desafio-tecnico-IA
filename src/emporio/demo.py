@@ -163,9 +163,9 @@ class DemoProvider:
                         ]
                         return Turn(
                             [],
-                            "Horário regular da loja e WhatsApp:\n- "
+                            "Horário regular da loja e WhatsApp:\n\n- "
                             + "\n- ".join(hours)
-                            + "\nDatas especiais podem ter alterações. "
+                            + "\n\nDatas especiais podem ter alterações. "
                             "Fonte: manual, seção 2, página 2.",
                         )
                 matches = matches[:1]
