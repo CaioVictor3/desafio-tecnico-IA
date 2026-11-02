@@ -37,3 +37,19 @@ Git e removidos de todos os commits publicáveis. A CI não depende de testes au
 Os módulos, scripts e exemplos têm nomes descritivos em português. Os materiais
 originais em `data/` e o enunciado em PDF mantêm seus nomes e conteúdo.
 
+## Diagnóstico posterior do acesso ao LLM
+
+Uma única requisição mínima à Responses API, sem dados do cliente e sem
+retentativas, reproduziu HTTP 429 com código `credit_balance_exhausted` e tipo
+`insufficient_quota`. A chave e a resposta bruta não foram registradas. Esse
+resultado confirma falta de créditos na organização associada à chave usada
+nessa verificação; não é um limite temporário de frequência.
+
+O adaptador agora distingue saldo, limites de gastos/uso e frequência, mostra uma
+orientação específica e não repete requisições automaticamente. O código não
+altera faturamento, saldo ou limites na conta OpenAI.
+
+Após a correção, os 19 testes locais de integração com o provedor/terminal e da
+interface Streamlit passaram. Ruff e a verificação de formatação também passaram.
+Os cenários adicionais usam transporte HTTP simulado, sem novas chamadas reais.
+

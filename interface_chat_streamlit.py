@@ -47,7 +47,7 @@ def main() -> None:
         elif not configuracoes.api_key:
             st.warning("Configure OPENAI_API_KEY no .env para conversar com a IA.")
         else:
-            st.caption("Atendimento com IA conectado à configuração local.")
+            st.caption("Chave da API configurada para o atendimento com IA.")
         st.caption("A conversa fica nesta sessão. Nova conversa apaga o contexto atual.")
 
     st.title("Empório da Música")

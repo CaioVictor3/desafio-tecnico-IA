@@ -60,6 +60,26 @@ Modelo padrão: `gpt-5-mini`, configurável em `OPENAI_MODEL`. O modo OpenAI exi
 chave válida e saldo/cota no provedor; as chamadas podem gerar cobrança.
 O programa não muda automaticamente para a demo se a API falhar: mostra o erro.
 
+### Falta de créditos ou limite de requisições
+
+O aplicativo distingue os motivos do HTTP 429 pelo código retornado pela OpenAI:
+
+- `credit_balance_exhausted`: os créditos da organização vinculada à chave
+  acabaram. Confira o [faturamento da API](https://platform.openai.com/settings/organization/billing/overview)
+  na organização correta e adicione créditos, se desejar continuar usando essa conta.
+  Aguardar ou reiniciar o Streamlit não repõe saldo.
+- `project_spend_limit_exceeded` / `organization_spend_limit_exceeded`: confira
+  o limite de gastos do projeto ou da organização.
+- `organization_usage_limit_exceeded`: solicite revisão do limite aprovado.
+- `insufficient_quota`: confira créditos e limites; esse tipo também pode vir
+  acompanhado de um código mais específico, que o aplicativo prioriza.
+- `rate_limit_exceeded` / `slow_down`: limite temporário; aguarde o intervalo
+  indicado e reduza a frequência das solicitações.
+
+As mensagens ocultam detalhes brutos da resposta e a chave. Não há repetição
+automática de requisições; a interface orienta a ação conforme a causa.
+Referência: [códigos de erro oficiais da OpenAI](https://developers.openai.com/api/docs/guides/error-codes).
+
 Exemplos de mensagens:
 
 ```text
@@ -184,8 +204,8 @@ distintas para dados/políticas, perguntas de esclarecimento, proteção de dado
 limites de escopo e proibição de fingir ações externas. O primeiro passo exige uma
 ferramenta. Há até seis rodadas por padrão e doze chamadas no total por mensagem,
 com limite de quatro chamadas em uma resposta. O SDK tem timeout de 30 segundos
-por tentativa e até duas retentativas. A resposta pode demorar mais que 30 segundos
-considerando rodadas e retentativas.
+por chamada, sem retentativas automáticas. A resposta pode demorar mais que 30
+segundos considerando as rodadas do agente.
 
 **Histórico e privacidade.** Apenas texto de cliente/resposta é mantido, limitado
 às últimas vinte interações por sessão. Persistência local em SQLite é optativa,
