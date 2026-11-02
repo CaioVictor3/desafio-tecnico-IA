@@ -91,7 +91,7 @@ class Provider(Protocol):
 class OpenAIProvider:
     def __init__(self, api_key: str, model: str, client: OpenAI | None = None):
         if not api_key:
-            raise ValueError("Configure OPENAI_API_KEY no .env ou use --provider demo.")
+            raise ValueError("Configure OPENAI_API_KEY no .env para usar o atendimento.")
         self.model = model
         # O SDK repete HTTP 429 por padrão, inclusive falta de saldo. A interface
         # explica a causa e deixa a nova tentativa para o usuário após a correção.

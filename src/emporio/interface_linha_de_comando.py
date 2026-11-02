@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -13,7 +13,6 @@ from emporio.configuracoes_da_aplicacao import Settings
 from emporio.ferramentas_de_consulta import Toolbox
 from emporio.historico_de_conversas import History
 from emporio.integracao_modelo_openai import OpenAIProvider
-from emporio.provedor_de_demonstracao import DemoProvider
 from emporio.repositorio_catalogo_e_pedidos import Catalog, DataError
 
 
@@ -23,7 +22,6 @@ def parser() -> argparse.ArgumentParser:
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("check", help="Validar fontes sem fazer chamadas de API.")
     chat = commands.add_parser("chat", help="Conversar com a Mel.")
-    chat.add_argument("--provider", choices=["openai", "demo"], default="openai")
     chat.add_argument("--message", help="Executar uma única mensagem e sair.")
     chat.add_argument(
         "--session", help="Optar por histórico persistente em SQLite, por identificador."
@@ -31,13 +29,12 @@ def parser() -> argparse.ArgumentParser:
     chat.add_argument(
         "--trace", action="store_true", help="Mostrar ferramentas e latência no stderr."
     )
-    chat.add_argument("--today", type=date.fromisoformat, help="Fixar data, só na demonstração.")
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
-    catalog, history = None, None
+    catalog, history, provider = None, None, None
     try:
         settings = Settings.load(args.data_dir)
         catalog = Catalog(settings.data_dir)
@@ -62,26 +59,12 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
-        if args.today:
-            if args.provider != "demo":
-                raise ValueError("--today é permitido apenas com --provider demo.")
-            toolbox.today = args.today
-        provider = (
-            DemoProvider()
-            if args.provider == "demo"
-            else OpenAIProvider(settings.api_key, settings.model)
-        )
+        provider = OpenAIProvider(settings.api_key, settings.model)
         history = History(
             settings.state_dir / "history.sqlite3" if args.session else None,
             args.session or "temporary",
         )
         agent = Agent(provider, toolbox, history, settings.max_rounds)
-        if args.provider == "demo":
-            print(
-                "[DEMO determinística, sem LLM/API; vocabulário limitado. "
-                "Use OpenAI para o agente.]",
-                file=sys.stderr,
-            )
         if args.session:
             print(
                 f"[Histórico local persistente: sessão {args.session}. "
@@ -122,6 +105,8 @@ def main(argv: list[str] | None = None) -> int:
             catalog.close()
         if history:
             history.close()
+        if provider:
+            provider.client.close()
 
 
 if __name__ == "__main__":

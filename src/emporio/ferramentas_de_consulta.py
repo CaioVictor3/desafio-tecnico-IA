@@ -171,5 +171,5 @@ class Toolbox:
         return {"error": "unknown_tool"}
 
     def run(self, name: str, user_messages: list[str] | None = None, **kwargs) -> dict:
-        """Entrada conveniente para a demonstração e os testes; mesma validação do LLM."""
+        """Entrada Python com a mesma validação usada nas chamadas do LLM."""
         return self.execute(name, json.dumps(kwargs, ensure_ascii=False), user_messages)

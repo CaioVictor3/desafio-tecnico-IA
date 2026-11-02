@@ -1,64 +1,42 @@
-# Validação da implementação
+# Validação da versão exclusiva OpenAI
 
 Execução local em 02/11/2026, Python 3.12.5, macOS.
 
 | Verificação | Resultado |
 | --- | --- |
-| `uv run emporio check` | OK: seis CSVs válidos, 29 seções de políticas |
-| `uv run pytest -q` | 52 testes locais aprovados, incluindo o chat Streamlit |
-| `uv run ruff check .` | Sem erros |
-| `uv run ruff format --check .` | Arquivos formatados |
-| CLI em dois processos com a mesma sessão | Contexto e identificação do produto preservados |
-| Streamlit AppTest | Pergunta/resposta, contexto, nova conversa, modos, isolamento e erro de fonte |
-| Chat no navegador local | Pergunta e preço promocional exibidos em http://127.0.0.1:8501 |
-| `scripts/gerar_conversas_de_exemplo.py` | Cinco conversas geradas com ferramentas reais no modo demo |
+| `uv run pytest -q` | 60 testes locais aprovados |
+| `uv run emporio check` | Seis CSVs válidos, 29 seções de políticas |
+| `uv run ruff check . tests/` | Sem erros |
+| `uv run ruff format --check . tests/` | Arquivos formatados |
+| Interface Streamlit | Sem seletor de provedor; perguntas bloqueadas sem chave |
+| Falha da OpenAI | Erro apresentado sem resposta alternativa; sem retentativa automática |
+| Teste real pelo terminal | API retornou `credit_balance_exhausted` |
 
-As fontes têm 65 produtos, 9 categorias, 50 clientes, 20 pedidos, 22 itens de pedidos
-e 25 registros de promoção. Os arquivos fornecidos foram preservados.
+A aplicação usa apenas o adaptador OpenAI. O provedor de demonstração, o gerador
+de respostas programadas e as cinco conversas produzidas por ele foram removidos.
+A transição da interface limpa o contexto da versão anterior na sessão do navegador.
+Os materiais originais do teste técnico em `data/` foram preservados.
 
-O contrato HTTP da Responses API foi testado com o SDK OpenAI real e transporte
-HTTP simulado, incluindo chamada de ferramenta, resultado e resposta final.
-Os cenários de falha de autenticação, limite do provedor e erro de servidor também
-foram simulados, sem rede.
+Os testes locais verificam consultas, cálculos, validações, histórico, contrato HTTP
+do SDK e a interface. O transporte HTTP isolado existe apenas dentro de `tests/`,
+que continua ignorado pelo Git e ausente de todos os commits publicáveis. A versão
+instalada da aplicação não tem provedor de atendimento alternativo.
 
-A validação automatizada usa chave vazia, demonstração e HTTP simulado. Não foram
-feitas chamadas reais de inferência nesta validação, nem medidos qualidade
-linguística, custo ou latência de um LLM.
-Os exemplos estão identificados como demonstrações determinísticas. O comando
-optativo `uv run python scripts/avaliar_atendimento_com_modelo_real.py` permite avaliação com credencial
-do avaliador e pode gerar cobrança.
+Uma pergunta real enviada pelo comando `emporio chat` chegou à OpenAI, que recusou
+a solicitação por falta de créditos na organização vinculada à chave. Não houve
+resposta de atendimento gerada nessa verificação; nenhuma resposta foi fabricada
+para substituí-la. A chave e o corpo bruto do erro não foram registrados.
 
-A configuração de CI inclui Python 3.11 e 3.12 em Linux; essa matriz remota ainda
-não foi executada. O repositório foi criado localmente, sem publicação no GitHub
-e sem envio de e-mail.
+Para validar respostas do modelo e gerar as cinco conversas de entrega, regularize
+o saldo da API e execute:
 
-Os arquivos de teste foram mantidos apenas na pasta local `tests/`, ignorados pelo
-Git e removidos de todos os commits publicáveis. A CI não depende de testes ausentes.
-Os módulos, scripts e exemplos têm nomes descritivos em português. Os materiais
-originais em `data/` e o enunciado em PDF mantêm seus nomes e conteúdo.
+```bash
+uv run python scripts/avaliar_atendimento_com_modelo_real.py --output-dir examples
+```
 
-## Diagnóstico posterior do acesso ao LLM
+O comando usa a API real e pode gerar cobrança. As conversas só são gravadas quando
+o agente conclui uma resposta. As respostas ao cliente não citam fontes internas;
+as consultas e os metadados de origem continuam disponíveis para o agente.
 
-Uma única requisição mínima à Responses API, sem dados do cliente e sem
-retentativas, reproduziu HTTP 429 com código `credit_balance_exhausted` e tipo
-`insufficient_quota`. A chave e a resposta bruta não foram registradas. Esse
-resultado confirma falta de créditos na organização associada à chave usada
-nessa verificação; não é um limite temporário de frequência.
-
-O adaptador agora distingue saldo, limites de gastos/uso e frequência, mostra uma
-orientação específica e não repete requisições automaticamente. O código não
-altera faturamento, saldo ou limites na conta OpenAI.
-
-Após a correção, os 19 testes locais de integração com o provedor/terminal e da
-interface Streamlit passaram. Ruff e a verificação de formatação também passaram.
-Os cenários adicionais usam transporte HTTP simulado, sem novas chamadas reais.
-
-## Atendimento sem citação de fontes internas
-
-As respostas ao cliente não incluem nomes de arquivos/tabelas, CSV, PDF, páginas
-ou seções do manual. As instruções do LLM e os textos do modo demonstração foram
-ajustados. Os metadados de origem e as consultas continuam disponíveis internamente.
-Os cinco exemplos foram regenerados. Os 42 testes locais do agente, regras/políticas
-e interface passaram, incluindo oito cenários que verificam respostas sem citações
-e a preservação das consultas internas e do cálculo de preço promocional.
-
+Não houve publicação no GitHub, envio de e-mail ou alteração do faturamento da
+conta OpenAI. A matriz de CI Linux/Python 3.11 e 3.12 não foi executada remotamente.

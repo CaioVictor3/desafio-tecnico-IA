@@ -8,8 +8,6 @@ from emporio.configuracoes_da_aplicacao import Settings
 from emporio.repositorio_catalogo_e_pedidos import DataError
 from emporio.servico_de_conversa_da_interface import responder_mensagem
 
-MODOS = {"OpenAI": "openai", "Demonstração sem API": "demo"}
-
 
 def exibir_mensagem(texto: str) -> None:
     # O cifrão de BRL deve aparecer como moeda, sem iniciar uma expressão LaTeX.
@@ -31,20 +29,14 @@ def main() -> None:
 
     st.session_state.setdefault("mensagens_exibidas", [])
     st.session_state.setdefault("historico_do_agente", [])
+    if st.session_state.get("versao_do_atendimento") != "openai_exclusivo":
+        limpar_conversa()
+        st.session_state["versao_do_atendimento"] = "openai_exclusivo"
 
     with st.sidebar:
         st.subheader("Seu atendimento")
-        modo_selecionado = st.selectbox(
-            "Modo de atendimento",
-            options=list(MODOS),
-            index=0 if configuracoes.api_key else 1,
-            key="modo_de_atendimento",
-            on_change=limpar_conversa,
-        )
         st.button("Nova conversa", on_click=limpar_conversa, width="stretch")
-        if MODOS[modo_selecionado] == "demo":
-            st.info("Demonstração sem LLM, com respostas limitadas aos cenários previstos.")
-        elif not configuracoes.api_key:
+        if not configuracoes.api_key:
             st.warning("Configure OPENAI_API_KEY no .env para conversar com a IA.")
         else:
             st.caption("Chave da API configurada para o atendimento com IA.")
@@ -63,7 +55,7 @@ def main() -> None:
         with st.chat_message(mensagem["role"], avatar=avatar):
             exibir_mensagem(mensagem["content"])
 
-    bloqueado = MODOS[modo_selecionado] == "openai" and not configuracoes.api_key
+    bloqueado = not configuracoes.api_key
     pergunta = st.chat_input("Escreva sua pergunta para a Mel…", max_chars=4000, disabled=bloqueado)
     if not pergunta or not pergunta.strip():
         return
@@ -75,7 +67,6 @@ def main() -> None:
             try:
                 resposta, historico = responder_mensagem(
                     pergunta,
-                    MODOS[modo_selecionado],
                     st.session_state["historico_do_agente"],
                     configuracoes,
                 )

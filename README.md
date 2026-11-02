@@ -20,17 +20,19 @@ uv run streamlit run interface_chat_streamlit.py
 
 Abra [o chat local](http://127.0.0.1:8501), escreva sua pergunta no campo inferior
 e pressione Enter. A Mel responde na mesma tela. O botão **Nova conversa** limpa
-o contexto. O seletor lateral permite escolher **OpenAI** ou **Demonstração sem API**.
-Se não houver chave configurada, a interface inicia na demonstração.
+o contexto. O atendimento usa exclusivamente a **OpenAI**. Sem
+`OPENAI_API_KEY`, o campo de perguntas fica bloqueado até a configuração da chave.
 
 O servidor escuta somente no computador local (`127.0.0.1`). Para encerrar,
 pressione Ctrl+C no terminal. A configuração está em `.streamlit/config.toml`.
 
 `check` valida os seis CSVs, as referências entre tabelas e a versão do manual, sem
-chamar uma API. O modo `demo` funciona sem chave e sem rede após a instalação.
-Ele é um **simulador determinístico com vocabulário limitado, não um LLM**.
-Usa as mesmas ferramentas e o mesmo loop do agente para uma avaliação
-reproduzível da camada de dados e das regras.
+chamar uma API. Toda pergunta de atendimento exige a OpenAI: não há provedor
+alternativo nem respostas programadas para substituir uma falha da API.
+
+Os dados de catálogo, pedidos e políticas são os materiais fornecidos no teste
+técnico. Eles continuam sendo consultados pelas ferramentas, e a OpenAI interpreta
+as perguntas e redige as respostas com base nos resultados.
 
 ### Com pip
 
@@ -53,12 +55,12 @@ cp .env.example .env
 uv run streamlit run interface_chat_streamlit.py
 ```
 
-Selecione **OpenAI** na lateral. Depois de alterar a chave no `.env`, reinicie
-o servidor. A chave é lida no servidor local e não aparece na interface.
+Depois de alterar a chave no `.env`, reinicie o servidor. A chave é lida
+no servidor local e não aparece na interface.
 
-Modelo padrão: `gpt-5-mini`, configurável em `OPENAI_MODEL`. O modo OpenAI exige
+Modelo padrão: `gpt-5-mini`, configurável em `OPENAI_MODEL`. O atendimento exige
 chave válida e saldo/cota no provedor; as chamadas podem gerar cobrança.
-O programa não muda automaticamente para a demo se a API falhar: mostra o erro.
+Se a API falhar, o programa informa o erro sem produzir uma resposta alternativa.
 
 ### Falta de créditos ou limite de requisições
 
@@ -94,7 +96,7 @@ Me arrependi da minha compra online. Recebi há três dias; posso devolver?
 O terminal continua disponível. Mensagem única, ferramentas e sessão persistente:
 
 ```bash
-uv run emporio chat --provider demo --trace --message 'Quanto custa o Ohana CK-20 no PIX?'
+uv run emporio chat --trace --message 'Quanto custa o Ohana CK-20 no PIX?'
 uv run emporio chat --session avaliacao
 uv run emporio chat --session avaliacao --message 'E quais as condições de pagamento?'
 ```
@@ -107,7 +109,7 @@ Configuração em `.env` (variáveis do ambiente têm precedência):
 
 | Variável | Padrão | Uso |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | vazio | Chave, somente no modo OpenAI |
+| `OPENAI_API_KEY` | vazio | Chave obrigatória para o atendimento |
 | `OPENAI_MODEL` | `gpt-5-mini` | Modelo com Responses API e function calling |
 | `EMPORIO_DATA_DIR` | `data` | Pasta das fontes, relativa à raiz ou absoluta |
 | `EMPORIO_STATE_DIR` | `.state` | Pasta do histórico optativo |
@@ -145,7 +147,7 @@ um grafo para um único agente.
 e chat_message. Apenas os textos da conversa ficam em `st.session_state`, separados
 por sessão do navegador. Cada pergunta cria e fecha suas próprias conexões SQLite
 e seu cliente de API; não há conexão compartilhada entre as threads de rerender.
-Mudar o modo de atendimento ou clicar em **Nova conversa** limpa o contexto.
+Clicar em **Nova conversa** limpa o contexto.
 O histórico do chat web não é gravado em disco e mantém até vinte interações.
 
 ### Organização dos arquivos
@@ -160,14 +162,12 @@ O histórico do chat web não é gravado em disco e mantém até vinte interaç�
 | `src/emporio/regras_comerciais_da_loja.py` | Cálculos de preços, parcelas e devoluções |
 | `src/emporio/ferramentas_de_consulta.py` | Schemas e execução das ferramentas do agente |
 | `src/emporio/integracao_modelo_openai.py` | Adaptador da Responses API |
-| `src/emporio/provedor_de_demonstracao.py` | Simulador sem chamadas de LLM |
 | `src/emporio/historico_de_conversas.py` | Histórico em memória ou SQLite optativo da CLI |
 | `src/emporio/configuracoes_da_aplicacao.py` | Configuração de ambiente e caminhos |
 | `src/emporio/interface_linha_de_comando.py` | Interface alternativa no terminal |
 | `src/emporio/instrucoes_do_agente.py` | Persona e instruções do sistema |
 | `src/emporio/utilitarios_texto_e_moeda.py` | Normalização de texto e valores em BRL |
 | `src/emporio/versao_validada_das_politicas.json` | Versão do manual revisada para os cálculos |
-| `scripts/gerar_conversas_de_exemplo.py` | Geração das cinco conversas demonstrativas |
 | `scripts/avaliar_atendimento_com_modelo_real.py` | Avaliação optativa com chamadas reais |
 | `RELATORIO_DE_VALIDACAO_LOCAL.md` | Evidências das verificações locais |
 
@@ -219,7 +219,7 @@ e-mail e ID do cliente. `--trace` mostra ferramenta, sucesso e duração, sem
 argumentos nem resultados. A API usa `store=false` e o histórico é reenviado pelo
 cliente, sem depender de estado persistente do provedor. Isso não é garantia de
 ausência de retenção operacional do provedor. Os textos e resultados necessários
-às respostas são enviados à OpenAI no modo LLM.
+às respostas são enviados à OpenAI durante o atendimento.
 
 ## Ferramentas
 
@@ -264,45 +264,41 @@ ataque; prompt injection e alucinação exigem avaliação adversarial com model
 
 ## Exemplos e validação
 
-As cinco conversas em `examples/` foram geradas com a demo e as ferramentas reais,
-com data de referência fixa, identificadas como **sem LLM**:
-
-1. `01_consulta_catalogo_por_orcamento_e_preco_pix.md`: orçamento e preço do Takamine com PIX.
-2. `02_consulta_endereco_e_horarios_de_atendimento.md`: informações gerais recuperadas do manual.
-3. `03_aplicacao_promocao_e_limite_de_parcelamento.md`: promoção sem PIX adicional e parcela abaixo do mínimo.
-4. `04_consulta_pedido_com_verificacao_de_identidade.md`: identificação em dois turnos e recusa de listar clientes.
-5. `05_orientacao_devolucao_com_data_de_recebimento.md`: esclarecimento de canal/data e aplicação dos sete dias.
+As conversas com respostas programadas foram removidas. A pasta `examples/` contém
+instruções para gerar cinco conversas pela **OpenAI real**, abrangendo catálogo,
+endereço, promoção/PIX, status de pedido e devolução:
 
 ```bash
+# Faz chamadas reais à OpenAI e pode gerar cobrança.
+uv run python scripts/avaliar_atendimento_com_modelo_real.py --output-dir examples
+```
+
+É necessário ter chave válida, acesso ao modelo e créditos/cota disponíveis.
+Se a API falhar antes de executar consultas, o script para sem fabricar uma
+conversa. Revise os resultados antes de entregar o repositório. As conversas do
+entregável precisam ser geradas depois de regularizar o acesso à API.
+
+Verificações sem inferência:
+
+```bash
+uv run emporio check
 uv run ruff check .
 uv run ruff format --check .
-uv run python scripts/gerar_conversas_de_exemplo.py
 ```
 
 Por solicitação do autor, a pasta **`tests/` permanece somente no computador**:
 está no `.gitignore`, foi removida também dos commits anteriores e não integra
 o repositório público nem o pacote de distribuição. No checkout local que contém
 essa pasta, execute `uv run pytest -q`. Um clone do GitHub não contém esses testes.
-A CI pública executa validação das fontes e verificações de código/formatação,
-sem tentar executar arquivos que não foram publicados.
+A CI pública executa validação das fontes e verificações de código/formatação.
 
-Os testes cobrem importação e atualização de fontes, consultas parametrizadas,
-estoque/status, promoções, parcelas, datas, retrieval com evidências, identificação
-do pedido, sessões, erros e limites. O adaptador OpenAI é testado com **SDK real
-e transporte HTTP simulado**, verificando o JSON e a sequência de
-`function_call` / `function_call_output`.
+Os testes locais verificam dados, cálculos, integração do SDK, histórico, erros,
+limites e interface. Apenas nos testes locais, o transporte HTTP é isolado para
+validar esses comportamentos sem consumir a chave do usuário. A aplicação em
+execução usa exclusivamente a OpenAI, e as verificações locais não demonstram a
+qualidade linguística de um modelo real.
 
-**A validação automatizada não chama LLM real:** usa demonstração e HTTP simulado.
-Os testes não provam qualidade linguística nem aderência do modelo ao prompt.
-Para avaliar o provedor real com sua chave, gere cinco novas conversas:
-
-```bash
-# Faz chamadas reais, possivelmente cobradas. Transcrições ficam em .state/live/.
-uv run python scripts/avaliar_atendimento_com_modelo_real.py
-```
-
-Esse script verifica ferramentas e alguns resultados esperados; é uma avaliação
-de fumaça, não um benchmark nem uma avaliação jurídica.
+Sem `--output-dir`, a avaliação com API grava as conversas em `.state/live/`.
 
 ## Limitações e próximos passos
 
@@ -329,7 +325,7 @@ de fumaça, não um benchmark nem uma avaliação jurídica.
 Usei **OpenAI Codex** para ler as fontes, estruturar e implementar a solução,
 escrever testes, executar a validação e gerar exemplos/documentação. As skills
 `pdf` e `openai-docs` auxiliaram a leitura dos PDFs e a consulta à documentação
-oficial. Os exemplos não foram apresentados como conversas com modelo real.
+oficial. As conversas de entrega devem ser geradas pelo comando de avaliação real.
 
 O Git local registra etapas reais em commits separados. Não houve force-push,
 publicação remota ou envio de e-mail. Para concluir o entregável de repositório
