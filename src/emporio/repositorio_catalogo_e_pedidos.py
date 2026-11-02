@@ -151,13 +151,15 @@ class Catalog:
         }
 
     def _product(self, r: sqlite3.Row) -> dict:
-        promo = self.db.execute(
+        promos = self.db.execute(
             "SELECT discount,description FROM promotions WHERE product_id=? AND active=1 "
-            "ORDER BY discount DESC,id LIMIT 1",
+            "ORDER BY id",
             (r["id"],),
-        ).fetchone()
+        ).fetchall()
         # Promoções só são oferecidas para produtos comercializáveis em estoque.
         available = r["status"] == "active" and r["stock"] > 0
+        needs_review = available and len(promos) > 1
+        promo = promos[0] if len(promos) == 1 else None
         discount = promo["discount"] if promo and available else 0
         from decimal import ROUND_HALF_UP, Decimal
 
@@ -181,6 +183,14 @@ class Catalog:
             "price": brl(current),
             "discount_percent": discount,
             "promotion": promo["description"] if discount else None,
+            "price_confirmed": not needs_review,
+            "active_promotions": [dict(p) for p in promos],
+            "pricing_note": (
+                "Há mais de uma oferta ativa. A equipe precisa confirmar o preço final; "
+                "o valor informado é o preço de tabela."
+                if needs_review
+                else None
+            ),
             "source": "products.csv + categories.csv + promotions.csv (snapshot local atualizado)",
         }
 
@@ -191,6 +201,48 @@ class Catalog:
             (product_id,),
         ).fetchone()
         return self._product(r) if r else None
+
+    def quote(self, product_id: int) -> dict:
+        """Preço calculado apenas com preço de tabela e promoção ativa nos CSVs."""
+        product = self.product(product_id)
+        if not product:
+            return {"error": "product_not_found", "message": "Não encontrei esse produto."}
+        if not product["available"]:
+            return {
+                "error": "unavailable",
+                "product": product,
+                "message": "Este produto não está disponível para venda.",
+            }
+        return {
+            "product": product,
+            "total_cents": product["price_cents"],
+            "total": product["price"],
+            "price_confirmed": product["price_confirmed"],
+            "payment_conditions": None,
+            "shipping_cost": None,
+            "message": product["pricing_note"]
+            or ("Condições de pagamento e frete precisam ser confirmadas com a equipe."),
+        }
+
+    def available_information(self) -> dict:
+        categories = self.db.execute(
+            "SELECT name,description FROM categories ORDER BY id"
+        ).fetchall()
+        return {
+            "categories": [dict(row) for row in categories],
+            "available_information": [
+                "Produtos, descrições, especificações, preços, estoque e status de venda.",
+                "Promoções identificadas como ativas.",
+                "Pedidos, itens, pagamento histórico, rastreamento e previsão após identificação.",
+            ],
+            "not_provided": [
+                "Endereço, telefone e horário da loja.",
+                "Desconto por forma de pagamento, parcelamento e valor do frete.",
+                "Políticas e prazos de troca, devolução e garantia.",
+            ],
+            "guidance": "Para informações não disponíveis, peça confirmação da equipe, "
+            "sem inventar condições ou citar a origem interna dos dados.",
+        }
 
     def search(
         self,

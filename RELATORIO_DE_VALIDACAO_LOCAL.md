@@ -1,42 +1,39 @@
-# Validação da versão exclusiva OpenAI
+# Validação: OpenAI com consultas exclusivas aos CSVs
 
 Execução local em 02/11/2026, Python 3.12.5, macOS.
 
 | Verificação | Resultado |
 | --- | --- |
-| `uv run pytest -q` | 60 testes locais aprovados |
-| `uv run emporio check` | Seis CSVs válidos, 29 seções de políticas |
+| `uv run pytest -q` | 54 testes locais aprovados |
+| `uv run emporio check` | Seis CSVs válidos; consultation_sources = csv_only |
 | `uv run ruff check . tests/` | Sem erros |
 | `uv run ruff format --check . tests/` | Arquivos formatados |
-| Interface Streamlit | Sem seletor de provedor; perguntas bloqueadas sem chave |
-| Falha da OpenAI | Erro apresentado sem resposta alternativa; sem retentativa automática |
-| Teste real pelo terminal | API retornou `credit_balance_exhausted` |
+| Pasta de consulta contendo somente CSVs | Validação e atendimento pela interface aprovados |
+| PDF inválido e JSON inválido na pasta de dados | Ignorados; validação dos CSVs continua funcionando |
+| Cotação sem condições de pagamento | Apenas preço de tabela e promoção ativa dos CSVs |
+| Promoções ativas simultâneas | Exige confirmação, sem inventar regra de acumulação |
 
-A aplicação usa apenas o adaptador OpenAI. O provedor de demonstração, o gerador
-de respostas programadas e as cinco conversas produzidas por ele foram removidos.
-A transição da interface limpa o contexto da versão anterior na sessão do navegador.
-Os materiais originais do teste técnico em `data/` foram preservados.
+Foram removidos o leitor/indexador do PDF, as ferramentas de políticas e devolução,
+as regras comerciais extraídas do manual, o arquivo de versão dessas regras e a
+dependência pdfplumber. Os PDFs originais foram preservados como materiais do teste,
+mas não são abertos nem consultados pela aplicação.
 
-Os testes locais verificam consultas, cálculos, validações, histórico, contrato HTTP
-do SDK e a interface. O transporte HTTP isolado existe apenas dentro de `tests/`,
-que continua ignorado pelo Git e ausente de todos os commits publicáveis. A versão
-instalada da aplicação não tem provedor de atendimento alternativo.
+Os 65 produtos, 9 categorias, 50 clientes, 20 pedidos, 22 itens e 25 promoções são
+validados e consultados a partir dos CSVs. Valores de PIX, parcelamento, frete,
+troca, devolução, garantia, endereço e horários não são inferidos de outras fontes.
+A interface limpa uma vez o contexto da versão anterior ao migrar para CSVs.
 
-Uma pergunta real enviada pelo comando `emporio chat` chegou à OpenAI, que recusou
-a solicitação por falta de créditos na organização vinculada à chave. Não houve
-resposta de atendimento gerada nessa verificação; nenhuma resposta foi fabricada
-para substituí-la. A chave e o corpo bruto do erro não foram registrados.
+O atendimento continua exclusivo da OpenAI. O transporte HTTP isolado existe
+somente nos testes locais, que permanecem fora do Git e da distribuição. Não foi
+feita nova chamada real à API nesta alteração. O último teste real de acesso
+retornou credit_balance_exhausted; saldo e limites da conta não foram alterados.
 
-Para validar respostas do modelo e gerar as cinco conversas de entrega, regularize
-o saldo da API e execute:
+As conversas de entrega devem ser geradas com a API real após regularizar o acesso:
 
 ```bash
 uv run python scripts/avaliar_atendimento_com_modelo_real.py --output-dir examples
 ```
 
-O comando usa a API real e pode gerar cobrança. As conversas só são gravadas quando
-o agente conclui uma resposta. As respostas ao cliente não citam fontes internas;
-as consultas e os metadados de origem continuam disponíveis para o agente.
-
-Não houve publicação no GitHub, envio de e-mail ou alteração do faturamento da
-conta OpenAI. A matriz de CI Linux/Python 3.11 e 3.12 não foi executada remotamente.
+Os cenários cobrem catálogo, preço, promoção, pedido e informação não disponível.
+As respostas ao cliente não citam a origem interna dos dados. Não houve publicação
+no GitHub, envio de e-mail ou execução remota da matriz de CI.

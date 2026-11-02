@@ -5,12 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "emporio-ai-agent"
 version = "0.1.0"
-description = "Agente de atendimento da Empório da Música: ferramentas SQL, RAG de políticas e LLM."
+description = "Agente da Empório da Música com OpenAI e consultas exclusivas aos CSVs."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "openai>=2.0,<3",
-  "pdfplumber>=0.11,<0.12",
   "pydantic>=2.10,<3",
   "python-dotenv>=1.0,<2",
   "streamlit>=1.50,<2",

@@ -29,9 +29,9 @@ def main() -> None:
 
     st.session_state.setdefault("mensagens_exibidas", [])
     st.session_state.setdefault("historico_do_agente", [])
-    if st.session_state.get("versao_do_atendimento") != "openai_exclusivo":
+    if st.session_state.get("versao_do_atendimento") != "openai_csv_exclusivo":
         limpar_conversa()
-        st.session_state["versao_do_atendimento"] = "openai_exclusivo"
+        st.session_state["versao_do_atendimento"] = "openai_csv_exclusivo"
 
     with st.sidebar:
         st.subheader("Seu atendimento")
@@ -47,7 +47,7 @@ def main() -> None:
     with st.chat_message("assistant", avatar="🎵"):
         st.markdown(
             "Oi! Sou a Mel, assistente virtual da Empório da Música. "
-            "Posso ajudar com instrumentos, pedidos e dúvidas sobre a loja."
+            "Posso ajudar com instrumentos, preços, disponibilidade e pedidos."
         )
 
     for mensagem in st.session_state["mensagens_exibidas"]:

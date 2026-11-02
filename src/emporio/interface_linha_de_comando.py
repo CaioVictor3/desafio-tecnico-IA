@@ -8,7 +8,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from emporio.agente_de_atendimento import Agent
-from emporio.busca_politicas_da_loja import PolicyIndex
 from emporio.configuracoes_da_aplicacao import Settings
 from emporio.ferramentas_de_consulta import Toolbox
 from emporio.historico_de_conversas import History
@@ -18,7 +17,7 @@ from emporio.repositorio_catalogo_e_pedidos import Catalog, DataError
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description="Empório da Música · Sua música começa aqui.")
-    result.add_argument("--data-dir", type=Path, help="Pasta com os seis CSVs e o manual PDF.")
+    result.add_argument("--data-dir", type=Path, help="Pasta com os seis CSVs do desafio.")
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("check", help="Validar fontes sem fazer chamadas de API.")
     chat = commands.add_parser("chat", help="Conversar com a Mel.")
@@ -38,21 +37,15 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings = Settings.load(args.data_dir)
         catalog = Catalog(settings.data_dir)
-        manuals = list(settings.data_dir.glob("*.pdf"))
-        if len(manuals) != 1:
-            raise DataError("Esperado exatamente um manual PDF na pasta data/.")
-        policies = PolicyIndex(manuals[0])
         today = datetime.now(ZoneInfo("America/Campo_Grande")).date()
-        toolbox = Toolbox(catalog, policies, today)
+        toolbox = Toolbox(catalog, today)
         if args.command == "check":
-            toolbox.rules.check_version()
             print(
                 json.dumps(
                     {
                         "ok": True,
                         "tables": catalog.counts(),
-                        "policy_sections": len(policies.sections),
-                        "policy_sha256": policies.sha256,
+                        "consultation_sources": "csv_only",
                     },
                     ensure_ascii=False,
                     indent=2,

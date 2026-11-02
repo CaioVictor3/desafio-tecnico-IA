@@ -7,7 +7,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from emporio.agente_de_atendimento import Agent
-from emporio.busca_politicas_da_loja import PolicyIndex
 from emporio.configuracoes_da_aplicacao import Settings
 from emporio.ferramentas_de_consulta import Toolbox
 from emporio.historico_de_conversas import History
@@ -16,8 +15,13 @@ from emporio.repositorio_catalogo_e_pedidos import Catalog
 
 SCENARIOS = [
     ("catalogo", "Quais violões disponíveis até R$ 1000?", {"search_products"}, None),
-    ("endereco", "Qual o endereço da loja?", {"search_policies"}, "3200"),
-    ("promocao", "Quanto custa o Ohana CK-20 no PIX?", {"search_products", "get_quote"}, "439"),
+    ("preco", "Quanto custa o Takamine GD20?", {"search_products"}, "2.199"),
+    (
+        "promocao",
+        "Quanto custa o Ohana CK-20 na promoção atual?",
+        {"search_products", "get_quote"},
+        "439",
+    ),
     (
         "pedido",
         "Meu pedido é 8 e meu e-mail é anacarol.ferreira@coldmail.com. Qual é o status?",
@@ -25,9 +29,9 @@ SCENARIOS = [
         "BRJL5544332BR",
     ),
     (
-        "devolucao",
-        "Me arrependi da compra online. Ainda não informei quando recebi. Como faço para devolver?",
-        {"assess_return"},
+        "informacao_indisponivel",
+        "Qual é o horário de funcionamento da loja?",
+        {"get_available_information"},
         None,
     ),
 ]
@@ -41,7 +45,6 @@ def main(argv: list[str] | None = None):
     if not settings.api_key:
         raise SystemExit("Configure OPENAI_API_KEY no .env para avaliar o LLM real.")
     catalog = Catalog(settings.data_dir)
-    policies = PolicyIndex(next(settings.data_dir.glob("*.pdf")))
     today = datetime.now(ZoneInfo("America/Campo_Grande")).date()
     provider = OpenAIProvider(settings.api_key, settings.model)
     target = args.output_dir.resolve() if args.output_dir else settings.state_dir / "live"
@@ -52,7 +55,7 @@ def main(argv: list[str] | None = None):
             history = History()
             try:
                 answer = Agent(
-                    provider, Toolbox(catalog, policies, today), history, settings.max_rounds
+                    provider, Toolbox(catalog, today), history, settings.max_rounds
                 ).reply(message)
                 conversa_concluida = bool(history.load())
             finally:

@@ -6,12 +6,11 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from emporio.agente_de_atendimento import Agent, Answer
-from emporio.busca_politicas_da_loja import PolicyIndex
 from emporio.configuracoes_da_aplicacao import Settings
 from emporio.ferramentas_de_consulta import Toolbox
 from emporio.historico_de_conversas import History
 from emporio.integracao_modelo_openai import OpenAIProvider
-from emporio.repositorio_catalogo_e_pedidos import Catalog, DataError
+from emporio.repositorio_catalogo_e_pedidos import Catalog
 
 
 def responder_mensagem(
@@ -24,12 +23,8 @@ def responder_mensagem(
     try:
         provedor = OpenAIProvider(configuracoes.api_key, configuracoes.model)
         catalogo = Catalog(configuracoes.data_dir)
-        manuais = list(configuracoes.data_dir.glob("*.pdf"))
-        if len(manuais) != 1:
-            raise DataError("Esperado exatamente um manual PDF na pasta data/.")
-        politicas = PolicyIndex(manuais[0])
         hoje = datetime.now(ZoneInfo("America/Campo_Grande")).date()
-        ferramentas = Toolbox(catalogo, politicas, hoje)
+        ferramentas = Toolbox(catalogo, hoje)
         historico = History()
         for indice in range(0, len(historico_anterior) - 1, 2):
             cliente, assistente = historico_anterior[indice : indice + 2]

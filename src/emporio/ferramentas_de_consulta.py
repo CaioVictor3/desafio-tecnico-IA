@@ -3,12 +3,9 @@ from __future__ import annotations
 import json
 import re
 from datetime import date
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from emporio.busca_politicas_da_loja import PolicyIndex
-from emporio.regras_comerciais_da_loja import Rules
 from emporio.repositorio_catalogo_e_pedidos import Catalog, DataError
 from emporio.utilitarios_texto_e_moeda import cents
 
@@ -27,8 +24,6 @@ class SearchProducts(Arguments):
 
 class GetQuote(Arguments):
     product_id: int = Field(ge=1)
-    payment_method: Literal["pix", "credit", "debit", "boleto"]
-    installments: int = Field(ge=1, le=12)
 
 
 class GetOrder(Arguments):
@@ -43,24 +38,8 @@ class GetOrder(Arguments):
         return value.strip().casefold()
 
 
-class SearchPolicies(Arguments):
-    query: str = Field(min_length=2, max_length=300)
-    limit: int = Field(ge=1, le=6)
-
-
-class AssessReturn(Arguments):
-    reason: Literal["regret", "defect", "preference"]
-    online: bool | None
-    purchase_date: str | None = Field(description="AAAA-MM-DD, ou null se desconhecida.")
-    received_date: str | None = Field(description="Recebimento real AAAA-MM-DD, nunca a previsão.")
-    condition_confirmed: bool | None
-
-    @field_validator("purchase_date", "received_date")
-    @classmethod
-    def validate_date(cls, value: str | None) -> str | None:
-        if value is not None:
-            date.fromisoformat(value)
-        return value
+class GetAvailableInformation(Arguments):
+    pass
 
 
 DEFINITIONS = {
@@ -71,23 +50,19 @@ DEFINITIONS = {
     ),
     "get_quote": (
         GetQuote,
-        "Calcular preço PIX ou parcelamento SEM acumular promoções. "
-        "Obtenha product_id com search_products antes. Não faz compra.",
+        "Consultar preço e promoção ativa do produto. Não há regras de PIX, "
+        "parcelamento ou frete disponíveis. Não faz compra.",
     ),
     "get_order": (
         GetOrder,
         "Consultar UM pedido com número e e-mail informados pelo próprio "
         "cliente. Nunca adivinhe o e-mail. Não há acesso ao cadastro/lista de clientes.",
     ),
-    "search_policies": (
-        SearchPolicies,
-        "Consultar evidências no PDF: horários, endereço, "
-        "pagamento, frete, trocas, garantia, escopo, atendimento e privacidade.",
-    ),
-    "assess_return": (
-        AssessReturn,
-        "Aplicar prazos do manual à data real de compra/recebimento. "
-        "Não aprova nem registra devolução. Use null para dados desconhecidos.",
+    "get_available_information": (
+        GetAvailableInformation,
+        "Consultar as categorias e quais informações estão disponíveis. "
+        "Use para saudações, limites de escopo e informações ausentes; "
+        "não há políticas, endereço ou horários nos dados disponíveis.",
     ),
 }
 
@@ -96,6 +71,7 @@ def schemas() -> list[dict]:
     result = []
     for name, (model, description) in DEFINITIONS.items():
         schema = model.model_json_schema()
+        schema["required"] = list(schema["properties"])
         result.append(
             {
                 "type": "function",
@@ -109,10 +85,8 @@ def schemas() -> list[dict]:
 
 
 class Toolbox:
-    def __init__(self, catalog: Catalog, policies: PolicyIndex, today: date):
+    def __init__(self, catalog: Catalog, today: date):
         self.catalog = catalog
-        self.policies = policies
-        self.rules = Rules(catalog, policies)
         self.today = today
 
     def execute(
@@ -136,7 +110,7 @@ class Toolbox:
                         limit=arguments.limit,
                     )
                 case GetQuote():
-                    return self.rules.quote(**arguments.model_dump())
+                    return self.catalog.quote(**arguments.model_dump())
                 case GetOrder():
                     # Identidade deve vir do cliente, nunca dos documentos nem da imaginação do LLM.
                     provided = {
@@ -151,10 +125,8 @@ class Toolbox:
                             "ao cliente antes de consultar o pedido.",
                         }
                     return self.catalog.order(arguments.order_id, arguments.customer_email)
-                case SearchPolicies():
-                    return self.policies.search(**arguments.model_dump())
-                case AssessReturn():
-                    return self.rules.assess_return(**arguments.model_dump(), today=self.today)
+                case GetAvailableInformation():
+                    return self.catalog.available_information()
         except ValidationError:
             # Não retornar os argumentos pessoais ou detalhes internos no erro de validação.
             return {
