@@ -1,4 +1,4 @@
-# 02 endereco e horario
+# 02 consulta endereco e horarios de atendimento
 
 Execução real do modo DEMO determinístico, sem LLM/API. Ferramentas consultam os CSVs/PDF fornecidos. Data de referência fixa: 2026-11-02 (America/Campo_Grande).
 

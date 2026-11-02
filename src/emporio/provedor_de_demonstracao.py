@@ -6,8 +6,8 @@ import json
 import re
 from uuid import uuid4
 
-from emporio.provider import Turn
-from emporio.text import normalize
+from emporio.integracao_modelo_openai import Turn
+from emporio.utilitarios_texto_e_moeda import normalize
 
 BRANDS = r"yamaha|tagima|giannini|rozini|shelby|crafter|martin|taylor|takamine|kala|ohana|kalani"
 

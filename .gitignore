@@ -11,7 +11,8 @@ dist/
 build/
 .state/
 .DS_Store
-tests/.pytest_cache/
 *.log
-*./tests
+# Testes e validações ficam apenas no computador, fora da publicação no GitHub.
+/tests/
+.streamlit/secrets.toml
 

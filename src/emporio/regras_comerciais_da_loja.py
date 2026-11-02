@@ -7,9 +7,9 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from emporio.catalog import Catalog, DataError
-from emporio.policies import PolicyIndex
-from emporio.text import brl
+from emporio.busca_politicas_da_loja import PolicyIndex
+from emporio.repositorio_catalogo_e_pedidos import Catalog, DataError
+from emporio.utilitarios_texto_e_moeda import brl
 
 
 class Rules:
@@ -19,10 +19,12 @@ class Rules:
 
     def check_version(self) -> None:
         self.policies.refresh()
-        snapshot = json.loads(Path(__file__).with_name("rules_snapshot.json").read_text())
+        snapshot = json.loads(
+            Path(__file__).with_name("versao_validada_das_politicas.json").read_text()
+        )
         if snapshot["policy_sha256"] != self.policies.sha256:
             raise DataError(
-                "O manual mudou. Revise as regras em Python e rules_snapshot.json "
+                "O manual mudou. Revise as regras em Python e versao_validada_das_politicas.json "
                 "antes de emitir cálculos de pagamento ou devolução."
             )
 

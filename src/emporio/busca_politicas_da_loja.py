@@ -13,8 +13,8 @@ import pdfplumber
 from pdfminer.pdfparser import PDFSyntaxError
 from pdfplumber.utils.exceptions import PdfminerException
 
-from emporio.catalog import DataError
-from emporio.text import tokens
+from emporio.repositorio_catalogo_e_pedidos import DataError
+from emporio.utilitarios_texto_e_moeda import tokens
 
 STOP = set(
     "a o as os de da do das dos e em um uma para por com que qual quais como no na "

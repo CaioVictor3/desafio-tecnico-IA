@@ -15,8 +15,16 @@ Os arquivos originais já estão em `data/`. Execute os comandos **na raiz deste
 ```bash
 uv sync --frozen --extra dev
 uv run emporio check
-uv run emporio chat --provider demo
+uv run streamlit run interface_chat_streamlit.py
 ```
+
+Abra [o chat local](http://127.0.0.1:8501), escreva sua pergunta no campo inferior
+e pressione Enter. A Mel responde na mesma tela. O botão **Nova conversa** limpa
+o contexto. O seletor lateral permite escolher **OpenAI** ou **Demonstração sem API**.
+Se não houver chave configurada, a interface inicia na demonstração.
+
+O servidor escuta somente no computador local (`127.0.0.1`). Para encerrar,
+pressione Ctrl+C no terminal. A configuração está em `.streamlit/config.toml`.
 
 `check` valida os seis CSVs, as referências entre tabelas e a versão do manual, sem
 chamar uma API. O modo `demo` funciona sem chave e sem rede após a instalação.
@@ -31,7 +39,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
 emporio check
-emporio chat --provider demo
+streamlit run interface_chat_streamlit.py
 ```
 
 No PowerShell, ative com `.venv\Scripts\Activate.ps1`.
@@ -42,8 +50,11 @@ Com pip, substitua `uv run emporio` por `emporio` nos exemplos abaixo.
 ```bash
 cp .env.example .env
 # Edite .env e preencha OPENAI_API_KEY.
-uv run emporio chat
+uv run streamlit run interface_chat_streamlit.py
 ```
+
+Selecione **OpenAI** na lateral. Depois de alterar a chave no `.env`, reinicie
+o servidor. A chave é lida no servidor local e não aparece na interface.
 
 Modelo padrão: `gpt-5-mini`, configurável em `OPENAI_MODEL`. O modo OpenAI exige
 chave válida e saldo/cota no provedor; as chamadas podem gerar cobrança.
@@ -60,7 +71,7 @@ Quanto fica o Ohana CK-20 em 6x? E no PIX?
 Me arrependi da minha compra online. Recebi há três dias; posso devolver?
 ```
 
-Mensagem única, ferramentas usadas e sessão persistente:
+O terminal continua disponível. Mensagem única, ferramentas e sessão persistente:
 
 ```bash
 uv run emporio chat --provider demo --trace --message 'Quanto custa o Ohana CK-20 no PIX?'
@@ -68,7 +79,7 @@ uv run emporio chat --session avaliacao
 uv run emporio chat --session avaliacao --message 'E quais as condições de pagamento?'
 ```
 
-`/sair` encerra e `/limpar` apaga o histórico lógico da sessão atual. Sem `--session`,
+No terminal, `/sair` encerra e `/limpar` apaga o histórico lógico da sessão atual. Sem `--session`,
 o histórico existe somente em memória. Identificadores aceitam letras, números, `_`
 e `-` (até 64 caracteres). Não reutilize a mesma sessão entre clientes diferentes.
 
@@ -88,7 +99,7 @@ O `data/` deve acompanhar a distribuição do projeto; não é embutido no wheel
 ## Arquitetura e decisões
 
 ```text
-Cliente -> CLI -> agente (loop limitado) -> OpenAI Responses API
+Cliente -> Streamlit ou CLI -> agente (loop limitado) -> OpenAI Responses API
                    |                         |
                    |      chamadas de ferramentas tipadas
                    v                         v
@@ -105,9 +116,40 @@ pedido são informações estruturadas. Consultas parametrizadas são previsíve
 para esses dados. As políticas são recuperadas por seção com título e página.
 Perguntas mistas podem usar mais de uma ferramenta no mesmo turno.
 
-**Sem framework de agentes.** O loop em `agent.py` é explícito e testável, com
+**Sem framework de agentes.** O loop em `agente_de_atendimento.py` é explícito e testável, com
 controle sobre argumentos, resultados, falhas e limites, sem a complexidade de
 um grafo para um único agente.
+
+**Interface local em Streamlit.** Usa os componentes nativos
+[chat_input](https://docs.streamlit.io/develop/api-reference/chat/st.chat_input)
+e chat_message. Apenas os textos da conversa ficam em `st.session_state`, separados
+por sessão do navegador. Cada pergunta cria e fecha suas próprias conexões SQLite
+e seu cliente de API; não há conexão compartilhada entre as threads de rerender.
+Mudar o modo de atendimento ou clicar em **Nova conversa** limpa o contexto.
+O histórico do chat web não é gravado em disco e mantém até vinte interações.
+
+### Organização dos arquivos
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `interface_chat_streamlit.py` | Tela local de perguntas e respostas |
+| `src/emporio/servico_de_conversa_da_interface.py` | Conecta o chat ao agente e isola os recursos por execução |
+| `src/emporio/agente_de_atendimento.py` | Loop de decisão, ferramentas e resposta |
+| `src/emporio/repositorio_catalogo_e_pedidos.py` | Leitura e validação dos CSVs, catálogo e pedidos |
+| `src/emporio/busca_politicas_da_loja.py` | Extração do PDF e recuperação de seções |
+| `src/emporio/regras_comerciais_da_loja.py` | Cálculos de preços, parcelas e devoluções |
+| `src/emporio/ferramentas_de_consulta.py` | Schemas e execução das ferramentas do agente |
+| `src/emporio/integracao_modelo_openai.py` | Adaptador da Responses API |
+| `src/emporio/provedor_de_demonstracao.py` | Simulador sem chamadas de LLM |
+| `src/emporio/historico_de_conversas.py` | Histórico em memória ou SQLite optativo da CLI |
+| `src/emporio/configuracoes_da_aplicacao.py` | Configuração de ambiente e caminhos |
+| `src/emporio/interface_linha_de_comando.py` | Interface alternativa no terminal |
+| `src/emporio/instrucoes_do_agente.py` | Persona e instruções do sistema |
+| `src/emporio/utilitarios_texto_e_moeda.py` | Normalização de texto e valores em BRL |
+| `src/emporio/versao_validada_das_politicas.json` | Versão do manual revisada para os cálculos |
+| `scripts/gerar_conversas_de_exemplo.py` | Geração das cinco conversas demonstrativas |
+| `scripts/avaliar_atendimento_com_modelo_real.py` | Avaliação optativa com chamadas reais |
+| `RELATORIO_DE_VALIDACAO_LOCAL.md` | Evidências das verificações locais |
 
 **Modelo e provedor.** Escolhi OpenAI com `gpt-5-mini` como ponto de partida para
 interpretar mensagens, escolher ferramentas e redigir respostas. O modelo pode ser
@@ -133,7 +175,7 @@ antigos silenciosamente. O PDF é verificado por SHA-256 e reindexado se mudar.
 Isso consulta o **snapshot local atualizado**, sem integração de estoque em tempo real.
 
 **Políticas calculáveis.** PIX, promoções, parcelas e janelas de devolução são
-calculados em Python. O hash em `rules_snapshot.json` vincula esses cálculos ao manual
+calculados em Python. O hash em `versao_validada_das_politicas.json` vincula esses cálculos ao manual
 revisado: se o PDF mudar, param até revisão das regras e atualização deliberada do
 hash. Não basta regenerar o hash sem conferir as políticas.
 
@@ -202,18 +244,24 @@ ataque; prompt injection e alucinação exigem avaliação adversarial com model
 As cinco conversas em `examples/` foram geradas com a demo e as ferramentas reais,
 com data de referência fixa, identificadas como **sem LLM**:
 
-1. `01_catalogo_e_preco.md`: orçamento e preço do Takamine com PIX.
-2. `02_endereco_e_horario.md`: informações gerais recuperadas do manual.
-3. `03_promocao_e_parcelamento.md`: promoção sem PIX adicional e parcela abaixo do mínimo.
-4. `04_pedido_e_privacidade.md`: identificação em dois turnos e recusa de listar clientes.
-5. `05_devolucao_com_contexto.md`: esclarecimento de canal/data e aplicação dos sete dias.
+1. `01_consulta_catalogo_por_orcamento_e_preco_pix.md`: orçamento e preço do Takamine com PIX.
+2. `02_consulta_endereco_e_horarios_de_atendimento.md`: informações gerais recuperadas do manual.
+3. `03_aplicacao_promocao_e_limite_de_parcelamento.md`: promoção sem PIX adicional e parcela abaixo do mínimo.
+4. `04_consulta_pedido_com_verificacao_de_identidade.md`: identificação em dois turnos e recusa de listar clientes.
+5. `05_orientacao_devolucao_com_data_de_recebimento.md`: esclarecimento de canal/data e aplicação dos sete dias.
 
 ```bash
-uv run pytest -q
 uv run ruff check .
 uv run ruff format --check .
-uv run python scripts/generate_examples.py
+uv run python scripts/gerar_conversas_de_exemplo.py
 ```
+
+Por solicitação do autor, a pasta **`tests/` permanece somente no computador**:
+está no `.gitignore`, foi removida também dos commits anteriores e não integra
+o repositório público nem o pacote de distribuição. No checkout local que contém
+essa pasta, execute `uv run pytest -q`. Um clone do GitHub não contém esses testes.
+A CI pública executa validação das fontes e verificações de código/formatação,
+sem tentar executar arquivos que não foram publicados.
 
 Os testes cobrem importação e atualização de fontes, consultas parametrizadas,
 estoque/status, promoções, parcelas, datas, retrieval com evidências, identificação
@@ -221,13 +269,13 @@ do pedido, sessões, erros e limites. O adaptador OpenAI é testado com **SDK re
 e transporte HTTP simulado**, verificando o JSON e a sequência de
 `function_call` / `function_call_output`.
 
-**Não houve chamada a LLM real na implementação:** não havia chave configurada.
+**A validação automatizada não chama LLM real:** usa demonstração e HTTP simulado.
 Os testes não provam qualidade linguística nem aderência do modelo ao prompt.
 Para avaliar o provedor real com sua chave, gere cinco novas conversas:
 
 ```bash
 # Faz chamadas reais, possivelmente cobradas. Transcrições ficam em .state/live/.
-uv run python scripts/evaluate_live.py
+uv run python scripts/avaliar_atendimento_com_modelo_real.py
 ```
 
 Esse script verifica ferramentas e alguns resultados esperados; é uma avaliação
@@ -244,8 +292,9 @@ de fumaça, não um benchmark nem uma avaliação jurídica.
   de chamados. Reclamações orientam contato humano, sem alegar encaminhamento automático.
 - Sem WhatsApp, transportadora, CEP, CRM ou calendário de feriados/dias úteis.
   Não inventa frete ou prazo exato de retorno humano.
-- Armazenamento e recarga não foram projetados para múltiplos processos concorrentes.
-  A interface é CLI.
+- A CLI persistente não foi projetada para processos que escrevam simultaneamente
+  na mesma sessão. O chat Streamlit usa memória isolada por sessão; recarregar a
+  página ou encerrar a sessão pode perder o histórico.
 - Regras/alertas referem-se ao manual 2.1 fornecido. Atualização exige revisar código,
   prompt, alertas, testes e hash. Não há OCR.
 - Com mais tempo: autenticação, sistemas reais, avaliação adversarial com LLM,
@@ -267,6 +316,9 @@ público, crie um repositório vazio na sua conta e publique após revisar o con
 git remote add origin https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
 git push -u origin main
 ```
+
+O histórico local foi filtrado para retirar os arquivos `tests/`, preservando
+as etapas de implementação. Os testes continuam no disco, ignorados pelo Git.
 
 Revise se os materiais fornecidos podem constar em repositório público e nunca
 publique `.env`, `.state` ou credenciais. Respeite a data e o horário de entrega;

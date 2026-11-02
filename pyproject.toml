@@ -13,16 +13,20 @@ dependencies = [
   "pdfplumber>=0.11,<0.12",
   "pydantic>=2.10,<3",
   "python-dotenv>=1.0,<2",
+  "streamlit>=1.50,<2",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff>=0.11,<1"]
 
 [project.scripts]
-emporio = "emporio.cli:main"
+emporio = "emporio.interface_linha_de_comando:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/emporio"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

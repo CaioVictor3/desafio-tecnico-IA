@@ -4,10 +4,10 @@ import json
 import time
 from dataclasses import dataclass, field
 
-from emporio.history import History
-from emporio.prompts import SYSTEM_PROMPT
-from emporio.provider import Provider, ProviderError
-from emporio.tools import Toolbox, schemas
+from emporio.ferramentas_de_consulta import Toolbox, schemas
+from emporio.historico_de_conversas import History
+from emporio.instrucoes_do_agente import SYSTEM_PROMPT
+from emporio.integracao_modelo_openai import Provider, ProviderError
 
 
 @dataclass

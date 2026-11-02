@@ -1,4 +1,4 @@
-# 03 promocao e parcelamento
+# 03 aplicacao promocao e limite de parcelamento
 
 Execução real do modo DEMO determinístico, sem LLM/API. Ferramentas consultam os CSVs/PDF fornecidos. Data de referência fixa: 2026-11-02 (America/Campo_Grande).
 

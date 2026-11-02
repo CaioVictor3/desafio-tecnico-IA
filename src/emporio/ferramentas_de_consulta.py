@@ -7,10 +7,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from emporio.catalog import Catalog, DataError
-from emporio.policies import PolicyIndex
-from emporio.rules import Rules
-from emporio.text import cents
+from emporio.busca_politicas_da_loja import PolicyIndex
+from emporio.regras_comerciais_da_loja import Rules
+from emporio.repositorio_catalogo_e_pedidos import Catalog, DataError
+from emporio.utilitarios_texto_e_moeda import cents
 
 
 class Arguments(BaseModel):

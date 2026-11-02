@@ -4,13 +4,13 @@ import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from emporio.agent import Agent
-from emporio.catalog import Catalog
-from emporio.config import Settings
-from emporio.history import History
-from emporio.policies import PolicyIndex
-from emporio.provider import OpenAIProvider
-from emporio.tools import Toolbox
+from emporio.agente_de_atendimento import Agent
+from emporio.busca_politicas_da_loja import PolicyIndex
+from emporio.configuracoes_da_aplicacao import Settings
+from emporio.ferramentas_de_consulta import Toolbox
+from emporio.historico_de_conversas import History
+from emporio.integracao_modelo_openai import OpenAIProvider
+from emporio.repositorio_catalogo_e_pedidos import Catalog
 
 SCENARIOS = [
     ("catalogo", "Quais violões disponíveis até R$ 1000?", {"search_products"}, None),

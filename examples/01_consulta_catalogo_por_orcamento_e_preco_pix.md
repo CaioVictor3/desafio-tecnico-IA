@@ -1,4 +1,4 @@
-# 01 catalogo e preco
+# 01 consulta catalogo por orcamento e preco pix
 
 Execução real do modo DEMO determinístico, sem LLM/API. Ferramentas consultam os CSVs/PDF fornecidos. Data de referência fixa: 2026-11-02 (America/Campo_Grande).
 

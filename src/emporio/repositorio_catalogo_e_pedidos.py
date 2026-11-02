@@ -8,7 +8,7 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 
-from emporio.text import brl, cents, normalize, tokens
+from emporio.utilitarios_texto_e_moeda import brl, cents, normalize, tokens
 
 TABLES = ("categories", "products", "customers", "orders", "order_items", "promotions")
 SCHEMA = """

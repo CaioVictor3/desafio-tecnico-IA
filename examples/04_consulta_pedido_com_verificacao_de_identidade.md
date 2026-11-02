@@ -1,4 +1,4 @@
-# 04 pedido e privacidade
+# 04 consulta pedido com verificacao de identidade
 
 Execução real do modo DEMO determinístico, sem LLM/API. Ferramentas consultam os CSVs/PDF fornecidos. Data de referência fixa: 2026-11-02 (America/Campo_Grande).
 

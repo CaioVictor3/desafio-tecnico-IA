@@ -15,6 +15,5 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install -e '.[dev]'
       - run: emporio check
-      - run: pytest -q
       - run: ruff check .
       - run: ruff format --check .
